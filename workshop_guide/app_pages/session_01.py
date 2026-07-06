@@ -14,6 +14,7 @@ PROMPT_1_1 = """Create the following Snowflake objects for our Port of Montreal 
 
 1. A database called PORT_MTL_AI
 2. A schema called PORT_OPS inside that database
+3. A stage called DATA in the schema PORT_OPS with a directory table and server side encryption
 3. A warehouse called PORT_MTL_WH (size MEDIUM, auto-suspend after 60 seconds, auto-resume enabled)
 4. Set the session context to use these objects
 
@@ -41,56 +42,50 @@ USE WAREHOUSE PORT_MTL_WH;
 """)
 
 
-PROMPT_1_2 = """Use a notebook with appropriate external access integrations to do the following:
+PROMPT_1_2 = """In PORT_MTL_AI.PORT_OPS, the 10 CSV files have been uploaded to an internal stage called DATA.
 
-In PORT_MTL_AI.PORT_OPS, load data from publicly hosted CSV files into tables.
+For all 10 tables (TERMINALS, VESSELS, CONTAINER_MANIFESTS, CARGO_INVOICES, RAIL_SCHEDULES, CRANE_UTILIZATION, TRUCK_QUEUE_TIMES, PORT_INCIDENT_LOGS, MARINE_SAFETY_REPORTS, CBSA_INSPECTION_REPORTS):
 
-The CSV files are hosted at these URLs:
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/terminals.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/vessels.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/container_manifests.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/cargo_invoices.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/rail_schedules.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/crane_utilization.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/truck_queue_times.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/port_incident_logs.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/marine_safety_reports.csv
-- https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/cbsa_inspection_reports.csv
-
-For each file:
 1. Create a file format (CSV with SKIP_HEADER=1, FIELD_OPTIONALLY_ENCLOSED_BY='"')
-2. Create a stage that points to the URL or load using an appropriate method
-3. Create the table with appropriate column types inferred from the data
-4. Load the data
+2. Create the tables with appropriate column types inferred from the data
+3. Load the data
 
-Use whatever method is most efficient — you can use CREATE TABLE with INFER_SCHEMA from a stage, or create tables manually and COPY INTO them. The key requirement is that all 10 tables are created and populated.
+Use CREATE TABLE with INFER_SCHEMA from a stage and then COPY INTO them. The key requirement is that all 10 tables are created and populated.
 
 Execute all SQL."""
 
-render_prompt("Prompt 1.2", "Load All Data Tables from CSV", PROMPT_1_2)
+st.markdown("""
+**Before running the prompt below, download the 10 CSV files and upload them to the `DATA` stage:**
+
+1. Download all files from [github.com/sfc-gh-snotebaert/coco-hol-montreal/tree/main/workshop_guide/data](https://github.com/sfc-gh-snotebaert/coco-hol-montreal/tree/main/workshop_guide/data):
+   `terminals.csv`, `vessels.csv`, `container_manifests.csv`, `cargo_invoices.csv`, `rail_schedules.csv`, `crane_utilization.csv`, `truck_queue_times.csv`, `port_incident_logs.csv`, `marine_safety_reports.csv`, `cbsa_inspection_reports.csv`
+2. Using Snowsight, use the Horizon Catalog to browse to the `PORT_MTL_AI.PORT_OPS.DATA` stage to upload all 10 files.
+3. Then copy the prompt below into Cortex Code and execute.
+""")
+
+render_prompt("Step 1.2", "Load and Create Tables from CSV", PROMPT_1_2)
 
 render_explanation("What this prompt does", """
-Loads all 10 operational data tables from pre-hosted CSV files. Cortex Code will likely use one of these patterns:
+Loads all 10 operational data tables from CSV files uploaded to the internal stage `DATA`. Cortex Code will use INFER_SCHEMA to detect column types automatically:
 
-**Pattern 1 — External stage + INFER_SCHEMA**:
 ```sql
-CREATE OR REPLACE STAGE csv_stage URL = 'https://github.com/sfc-gh-obenning/coco-hol-montreal/raw/refs/heads/main/workshop_guide/static/';
+CREATE OR REPLACE FILE FORMAT csv_format
+  TYPE = CSV
+  SKIP_HEADER = 1
+  FIELD_OPTIONALLY_ENCLOSED_BY = '"';
 
 CREATE OR REPLACE TABLE TERMINALS
   USING TEMPLATE (
     SELECT ARRAY_AGG(OBJECT_CONSTRUCT(*))
-    FROM TABLE(INFER_SCHEMA(LOCATION=>'@csv_stage/terminals.csv', FILE_FORMAT=>'csv_format'))
+    FROM TABLE(INFER_SCHEMA(
+      LOCATION => '@PORT_MTL_AI.PORT_OPS.DATA/terminals.csv',
+      FILE_FORMAT => 'csv_format'
+    ))
   );
 
-COPY INTO TERMINALS FROM @csv_stage/terminals.csv FILE_FORMAT = csv_format;
-```
-
-**Pattern 2 — Explicit CREATE TABLE + COPY**:
-```sql
-CREATE TABLE TERMINALS (
-  terminal_id VARCHAR, terminal_name VARCHAR, ...
-);
-COPY INTO TERMINALS FROM @csv_stage/terminals.csv FILE_FORMAT = csv_format;
+COPY INTO TERMINALS
+  FROM @PORT_MTL_AI.PORT_OPS.DATA/terminals.csv
+  FILE_FORMAT = csv_format;
 ```
 
 **The 10 tables**:
@@ -111,7 +106,7 @@ COPY INTO TERMINALS FROM @csv_stage/terminals.csv FILE_FORMAT = csv_format;
 
 PROMPT_1_3 = """Run a query in PORT_MTL_AI.PORT_OPS that shows every table name and its row count, ordered by row count descending. Format it nicely."""
 
-render_prompt("Prompt 1.3", "Verify All Data Tables", PROMPT_1_3)
+render_prompt("Prompt 1.4", "Verify All Data Tables", PROMPT_1_3)
 
 render_explanation("What this prompt does", """
 A quick verification query:
