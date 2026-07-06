@@ -106,7 +106,7 @@ COPY INTO TERMINALS
 
 PROMPT_1_3 = """Run a query in PORT_MTL_AI.PORT_OPS that shows every table name and its row count, ordered by row count descending. Format it nicely."""
 
-render_prompt("Prompt 1.4", "Verify All Data Tables", PROMPT_1_3)
+render_prompt("Prompt 1.3", "Verify All Data Tables", PROMPT_1_3)
 
 render_explanation("What this prompt does", """
 A quick verification query:
