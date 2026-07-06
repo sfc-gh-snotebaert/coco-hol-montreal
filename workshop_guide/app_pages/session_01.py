@@ -47,7 +47,7 @@ PROMPT_1_2 = """In PORT_MTL_AI.PORT_OPS, the 10 CSV files have been uploaded to 
 For all 10 tables (TERMINALS, VESSELS, CONTAINER_MANIFESTS, CARGO_INVOICES, RAIL_SCHEDULES, CRANE_UTILIZATION, TRUCK_QUEUE_TIMES, PORT_INCIDENT_LOGS, MARINE_SAFETY_REPORTS, CBSA_INSPECTION_REPORTS):
 
 1. Create a file format (CSV with PARSE_HEADER=TRUE, FIELD_OPTIONALLY_ENCLOSED_BY='"')
-2. Create the tables with appropriate column types inferred from the data
+2. Create the tables with appropriate column types inferred from the data. Ensure to convert the column names to uppercase.
 3. Load the data
 
 Use CREATE TABLE with INFER_SCHEMA from a stage and then COPY INTO them. The key requirement is that all 10 tables are created and populated.
@@ -63,7 +63,7 @@ st.markdown("""
 3. Then copy the prompt below into Cortex Code and execute.
 """)
 
-render_prompt("Step 1.2", "Load and Create Tables from CSV", PROMPT_1_2)
+render_prompt("Prompt 1.2", "Load and Create Tables from CSV", PROMPT_1_2)
 
 render_explanation("What this prompt does", """
 Loads all 10 operational data tables from CSV files uploaded to the internal stage `DATA`. Cortex Code will use INFER_SCHEMA to detect column types automatically:
